@@ -1,0 +1,8 @@
+.vscode/settings.json
+__pycache__/model_utils.cpython-310.pyc
+modules/__pycache__/__init__.cpython-39.pyc
+modules/features/__pycache__/__init__.cpython-39.pyc
+modules/features/__pycache__/feature_extractor.cpython-39.pyc
+model_architectures/Unet_10.onnx
+model_architectures/Unet_test_20240331.svg
+model_architectures/Unet.onnx
