@@ -9,13 +9,16 @@
 - Base U-Net model fully working
 - StarDist whole WSI nuclei segmentation + Stain normalization + nuclei feature extraction (60 features in total) pipeline is working
 ### Currently working on:
-- Building more models into __model_utils.py__
+- Building more models into __model_utils.py__ from scratch => Gives more granular control over what to tune 
     - Build ResU-Net and various ResNet (18, 34, 50, 101) encoder U-Net's
-    - Build fusion blocks for multi-task learning
+    - Build fusion blocks for multi-task learning (example from https://doi.org/10.1016/j.media.2022.102481)
+    ![https://doi.org/10.1016/j.media.2022.102481](https://ars.els-cdn.com/content/image/1-s2.0-S1361841522001281-gr1_lrg.jpg)
+        - This will allow me to use the H&E and nuclei images to train 2 models simultaneously to predict TMEs and marker heatmaps whilst having the 2 models share information. Thus, theoretically resulting in a more robust model. 
     - Implement [FOVeation](https://github.com/lxasqjc/Foveation-Segmentation) module into the model  
     - Build training script using [Pytorch Lightning](https://lightning.ai/pytorch-lightning)
 - Implement nuclei centroid for the __feature_extractor.py__ utility file
     - Create contours around tumour segmentation mask and ray cast nuclei centroid coordinates to spatially map them
+- Convert IHC stains into heatmaps for training + automate script
 - Test out [Stain2Stain](https://github.com/pegahs1993/Stain-to-Stain-Translation) GAN stain normalization method (_Low Prio_ - normalization quality is already satisfactory apart from some minor nitpicks)
 ### What is required to run these codes:
 #### Nuclei segmentation and feature extractor
