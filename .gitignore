@@ -6,3 +6,17 @@ modules/features/__pycache__/feature_extractor.cpython-39.pyc
 model_architectures/Unet_10.onnx
 model_architectures/Unet_test_20240331.svg
 model_architectures/Unet.onnx
+example_img/T73-HnE_to_combo1_registered.ome.tiff
+example_img/Raw.tiff
+example_img/StarDist2D_prediction.tif
+example_img/T164-HnE_to_combo1_registered.ome.tiff
+example_img/T164_feature_set/T164-features.csv
+example_img/T164_features/T164_StarDist2D_prediction-fourier_shape_descriptors.csv
+example_img/T164_features/T164_StarDist2D_prediction-gradient.csv
+example_img/T164_features/T164_StarDist2D_prediction-haralick.csv
+example_img/T164_features/T164_StarDist2D_prediction-morphometry.csv
+example_img/T164_HnE_region.ome.tif
+example_img/T164_HnE_small.ome.tif
+example_img/T164_StarDist2D_prediction.tif
+example_img/T63-HnE_to_combo1_registered.ome.tiff
+output.png
