@@ -23,6 +23,5 @@ num_processes = multiprocessing.cpu_count()
 if __name__ == '__main__':
     centroids = get_centroids(nuclei_seg_im)
     print(centroids)
-    # centroids.to_csv(f'{os.getcwd()}/example_img/{exp}_feature_set/{exp}_centroids.csv', index=False)
 
     # get_nuclei_features(nuc_stain_im, nuclei_seg_im, save_path=f'{os.getcwd()}/example_img/{exp}_feature_set', file_name=exp, verbose=True)
