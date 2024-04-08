@@ -8,6 +8,7 @@
 ### What works:
 - Base U-Net model fully working
 - StarDist whole WSI nuclei segmentation + Stain normalization + nuclei feature extraction (60 features in total) pipeline is working
+- 60 features can be extracted from each nuclei along with their X- and Y-centroid coordinates under the {preifix}_feature.csv file
 ### Currently working on:
 - Building more models into __model_utils.py__ from scratch => Gives more granular control over what to tune 
     - Build ResU-Net and various ResNet (18, 34, 50, 101) encoder U-Net's
@@ -16,7 +17,7 @@
         - This will allow me to use the H&E and nuclei images to train 2 models simultaneously to predict TMEs and marker heatmaps whilst having the 2 models share information. Thus, theoretically resulting in a more robust model. 
     - Implement [FOVeation](https://github.com/lxasqjc/Foveation-Segmentation) module into the model  
     - Build training script using [Pytorch Lightning](https://lightning.ai/pytorch-lightning)
-- Implement nuclei centroid for the __feature_extractor.py__ utility file
+- ~~Implement nuclei centroid for the __feature_extractor.py__ utility file~~ **COMPLETED**
     - Create contours around tumour segmentation mask and ray cast nuclei centroid coordinates to spatially map them
 - Convert IHC stains into heatmaps for training + automate script
 - Test out [Stain2Stain](https://github.com/pegahs1993/Stain-to-Stain-Translation) GAN stain normalization method (_Low Prio_ - normalization quality is already satisfactory apart from some minor nitpicks)
@@ -26,6 +27,7 @@
 - ```conda install -c conda-forge cudnn==8.4.1.50, cudatoolkit==11.7.0``` => If you want to use NVIDIA GPU processes, otherwise skip
 - ```python -m pip install tensorflow==2.10.0```
 - ```python -m pip install histomicstk --find-links https://girder.github.io/large_image_wheels```
+- Note that using GPU to process things like centroid calculations will be way faster than using the CPU as they can process functions in a parallel manner rather than sequential (CPU).
 
 #### Pytorch Models
 - Seperate __Conda__ environment with __Python >3.9__ ready just in case it conflicts with Nuclei environment
