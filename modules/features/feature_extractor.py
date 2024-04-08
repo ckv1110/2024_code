@@ -1,31 +1,57 @@
 import histomicstk as htk
 import tifffile as tiff
-import glob
 import skimage.io
 import skimage.measure
 import skimage.color
 import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
 import pandas as pd
-import os
-from multiprocessing import Pool
 
-# img_path = glob.glob('./example_img/*HnE*.tiff')[0]
-# img = tiff.TiffReader(img_path)
-# img_arr = img.asarray()
+def load_image(image_path, as_tf=True):
+    """
+    Load a TIFF image using tifffile and convert it to a tensorflow array.
 
-# plt.imshow(img_arr)
-# _ = plt.title('Input Image', fontsize=16)
+    Parameters:
+    - image_path: Path to the TIFF image file.
+    - as_tf: If True, the image will be converted to a tensorflow array. If False, the image will be returned as a numpy array.
 
-def get_centroids(nuclei_seg_mask):
-    print('Computing nuclei centroids...')
-    n_colours = np.max(nuclei_seg_mask)
+    Returns:
+    A tensforflow array representing the image.
+    """
+    with tiff.TiffFile(image_path) as tif:
+        image_array = tif.asarray()
 
-    centroids = {tuple(np.mean(coords) for coords in np.where(nuclei_seg_mask.T == i)) 
-                 for i in range(1, n_colours + 1)
-                 }
+    if as_tf:
+        image_array_tf = tf.convert_to_tensor(image_array, dtype=tf.float32)
+        return image_array_tf
+    else:
+        return image_array
 
-    print('Completed computing nuclei centroids.')
-    return centroids
+def calculate_centroids_tf_labels(image_tensor):
+    """
+    Calculates the centroids of unique labels in an image tensor.
+
+    Args:
+        image_tensor (tf.Tensor): The input image tensor.
+
+    Returns:
+        List: A list of tuples containing the label, centroid x-coordinate, and centroid y-coordinate.
+            The list is sorted by label.
+
+    """
+    unique_labels = tf.unique(tf.reshape(image_tensor, [-1])).y
+    unique_labels = unique_labels[unique_labels != 0]
+    centroids = []
+    for label in tqdm(unique_labels, desc='Calculating centroids with labels attached'):
+        positions = tf.where(tf.equal(image_tensor, label))
+        centroid_x = tf.reduce_mean(tf.cast(positions[:, 1], tf.float32))
+        centroid_y = tf.reduce_mean(tf.cast(positions[:, 0], tf.float32))
+        # Attach label to centroid for later sorting
+        centroids.append((label.numpy(), centroid_x.numpy(), centroid_y.numpy()))
+    # Sort centroids by label
+    centroids_sorted = sorted(centroids, key=lambda x: x[0])
+    return centroids_sorted
 
 def get_deconvolved_stains(im_input, stain_colour_map):
     """
@@ -54,7 +80,7 @@ def get_deconvolved_stains(im_input, stain_colour_map):
 
     return im_nuclei_stain, im_ecm_stain
 
-def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, save_path, file_name='Experiment', verbose=False):
+def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, verbose=False):
     """
     Extracts features from nuclei stain image and nuclei segmentation mask and saves them as .csv files.
 
@@ -87,9 +113,9 @@ def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, save_path, file_name='
     # hara_f.to_csv(save_path + file_name + "-haralick.csv")
 
     # Concatenate the dataframes
-    print('Completed computing features.\nSaving features...')
-    features = pd.concat([fsd_f, grad_f, morph_f, hara_f], axis=1)
-    os.makedirs(save_path, exist_ok=True)
-    features.insert(0, 'Nuclei_ID', range(1, 1 + len(features)))
-    features.to_csv(f"{save_path}/{file_name}-features.csv", index=False)
+    print('Completed computing features')
+    features = pd.concat([hara_f, fsd_f, grad_f, morph_f], axis=1)
+    # os.makedirs(save_path, exist_ok=True)
+    # features.insert(0, 'Nuclei_ID', range(1, 1 + len(features)))
+    # features.to_csv(f"{save_path}/{file_name}-features.csv", index=False)
     return features

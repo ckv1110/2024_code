@@ -20,3 +20,8 @@ example_img/T164_HnE_small.ome.tif
 example_img/T164_StarDist2D_prediction.tif
 example_img/T63-HnE_to_combo1_registered.ome.tiff
 output.png
+test.ipynb
+centroids.py
+2.4.2
+T164_centroids_no_labels.csv
+T164_centroids_with_labels.csv
