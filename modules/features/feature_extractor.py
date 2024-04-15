@@ -7,6 +7,9 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 import pandas as pd
+from stardist.models import StarDist2D
+from csbdeep.utils import normalize
+import gc
 
 def load_image(image_path, as_tf=True):
     """
@@ -119,3 +122,37 @@ def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, verbose=False):
     # features.insert(0, 'Nuclei_ID', range(1, 1 + len(features)))
     # features.to_csv(f"{save_path}/{file_name}-features.csv", index=False)
     return features
+
+def segment_nuclei(model_type, im_array, 
+                   axes='YXC', 
+                   block_size=2000, min_overlap=300, context=300, 
+                   prob_thresh=0.5, nms_thresh=0.8):
+    """
+    Segment nuclei in an image using a pretrained StarDist2D model.
+
+    Parameters:
+    - model_type (str): The type of pretrained model to use.
+    - im_array (numpy.ndarray): The input image array.
+    - axes (str): The order of axes in the input image array. Default is 'YXC'.
+    - block_size (int): The size of the blocks used for prediction. Default is 2000.
+    - min_overlap (int): The minimum overlap between blocks. Default is 300.
+    - context (int): The context size used for prediction. Default is 300.
+    - prob_thresh (float): The probability threshold for classifying pixels as nuclei. Default is 0.5.
+    - nms_thresh (float): The non-maximum suppression threshold. Default is 0.8.
+
+    Returns:\n
+    (Saves the segmented nuclei labels as a TIFF file, and also returns the labels.)
+    - labels (numpy.ndarray): The segmented nuclei labels.
+    """
+
+    model = StarDist2D.from_pretrained(model_type)
+    labels, _  = model.predict_instances_big(
+        normalize(im_array,0.1,99.8), 
+        axes=axes, 
+        block_size=block_size, min_overlap=min_overlap, context=context, 
+        prob_thresh=prob_thresh, nms_thresh=nms_thresh
+        )
+    del _
+    gc.collect()
+    tiff.imwrite('./example_img/T19_StarDist2D_prediction.tif', labels.astype('uint16'))
+    return labels
