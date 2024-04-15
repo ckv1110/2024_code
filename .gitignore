@@ -25,3 +25,8 @@ centroids.py
 2.4.2
 T164_centroids_no_labels.csv
 T164_centroids_with_labels.csv
+example_img/T19_ground_truth.tiff
+example_img/T19_StarDist2D_prediction.tif
+example_img/T19-HnE_to_combo1_registered.ome.tiff
+example_img/T19_feature_set/T19_centroids.csv
+contouring.py
