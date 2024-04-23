@@ -49,22 +49,22 @@ class ResidualBlock(torch.nn.Module):
         input (bool, optional): Whether the block is used as the input block. Defaults to False.
     """
 
-    def __init__(self, in_channels, out_channels, stride=2, padding=0, bias=True, input=False):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, bias, input=False):
         super(ResidualBlock, self).__init__()
         if input:
             # Convolutional layer for the input block
             self.__conv_block = torch.nn.Sequential(
-                torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=bias),
+                torch.nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=1, bias=bias),
                 BatchNormRelu(out_channels),
-                torch.nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=bias)
+                torch.nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, padding=1, bias=bias)
             )
         else:
             # Convolutional layer for the residual block
             self.__conv_block = torch.nn.Sequential(
                 BatchNormRelu(in_channels),
-                torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=padding, bias=bias),
+                torch.nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias),
                 BatchNormRelu(out_channels),
-                torch.nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=padding, bias=bias)
+                torch.nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=bias)
             )
 
         # Shortcut connection
@@ -82,50 +82,73 @@ class ResidualBlock(torch.nn.Module):
         """
         return self.__conv_block(x) + self.__shortcut(x)
 
+class DoubleConvBlock(torch.nn.Module):
+    """
+    A class representing a double convolutional block in a neural network model.
+    
+    Args:
+        in_channels (int): The number of input channels.
+        out_channels (int): The number of output channels.
+        kernel_size (int, optional): The size of the convolutional kernel. Defaults to 3.
+        padding (int, optional): The amount of padding to apply. Defaults to 1.
+        bias (bool, optional): Whether to include bias in the convolutional layers. Defaults to False.
+        inplace (bool, optional): Whether to perform the operations in-place. Defaults to True.
+    """
+    
+    def __init__(self, in_channels, out_channels, kernel_size, padding, bias, inplace=True):
+        super(DoubleConvBlock, self).__init__()
+        self.conv_block = torch.nn.Sequential(
+            torch.nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=bias),
+            BatchNormRelu(out_channels, inplace=inplace),
+            torch.nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            BatchNormRelu(out_channels, inplace=inplace))
+        
+    def forward(self, x):
+        """
+        Forward pass of the double convolutional block.
+        
+        Args:
+            x (torch.Tensor): The input tensor.
+        
+        Returns:
+            torch.Tensor: The output tensor.
+        """
+        return self.conv_block(x)
+        
+
 class BuildUnet(torch.nn.Module):
     """
-    Basic U-Net model for multiclass semantic segmentation.
+    U-Net model implementation for semantic segmentation.
     
     Args:
         in_channels (int): Number of input channels.
-        classes (int): Number of classes to predict.
-        reverse_skip_concat (bool, optional): Whether to concatenate the encoder output with the decoder input in reverse order. Defaults to False.
+        classes (int): Number of output classes.
+        reverse_skip_concat (bool, optional): Whether to concatenate the skip connections in reverse order. Defaults to False.
+        k_size (int, optional): Kernel size for convolutional layers. Defaults to 3.
+        s (int, optional): Stride for max pooling and transpose convolutional layers. Defaults to 2.
+        pad (int, optional): Padding size for convolutional layers. Defaults to 1.
+        b (bool, optional): Whether to use bias in convolutional layers. Defaults to False.
     """
     
-    def __init__(self, in_channels, classes, reverse_skip_concat=False):
+    def __init__(self, in_channels, classes, reverse_skip_concat=False, k_size=3, s=2, pad=1, b=False):
         super(BuildUnet, self).__init__()
         self.layers_channels = [in_channels, 64, 128, 256, 512, 1024]
         # mid_channels = self.mid_channels
         self.reverse_skip_concat = reverse_skip_concat
+        k_size = self.k_size
+        s = self.s
+        pad = self.pad
+        b = self.b
 
-        self.encoder_down_layers = torch.nn.ModuleList([self.__double_conv_layer(c_in, c_out) 
+        self.encoder_down_layers = torch.nn.ModuleList([DoubleConvBlock(c_in, c_out, k_size, pad, b)
                                                         for c_in, c_out in zip(self.layers_channels[:-1], self.layers_channels[1:])])
-        self.maxpool_2x2 = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.up_transpose_2x2 = torch.nn.ModuleList([torch.nn.ConvTranspose2d(c_in, c_out, kernel_size=2, stride=2) 
+        self.maxpool_2x2 = torch.nn.MaxPool2d(kernel_size=2, stride=s, padding=0)
+        self.up_transpose_2x2 = torch.nn.ModuleList([torch.nn.ConvTranspose2d(c_in, c_out, kernel_size=2, stride=s) 
                                                      for c_in, c_out in zip(self.layers_channels[::-1][:-2], self.layers_channels[::-1][1:-1])])       
-        self.decoder_up_layers = torch.nn.ModuleList([self.__double_conv_layer(c_in, c_out) 
+        self.decoder_up_layers = torch.nn.ModuleList([DoubleConvBlock(c_in, c_out, k_size, pad, b) 
                                                       for c_in, c_out in zip(self.layers_channels[::-1][:-2], self.layers_channels[::-1][1:-1])])
         
         self.final_conv = torch.nn.Conv2d(self.layers_channels[1], classes, kernel_size=1)
-
-    def __double_conv_layer(self, in_channels, out_channels):
-        """
-        Creates a double convolutional layer with batch normalization and ReLU activation.
-        
-        Args:
-            in_channels (int): Number of input channels.
-            out_channels (int): Number of output channels.
-            mid_channels (int, optional): Number of channels in the middle sub-layer. Defaults to None.
-        
-        Returns:
-            torch.nn.Sequential: Double convolutional layer.
-        """
-        return torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            BatchNormRelu(out_channels, inplace=True),
-            torch.nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            BatchNormRelu(out_channels, inplace=True)
-        )
 
     def forward(self, x):
         """
@@ -163,21 +186,50 @@ class BuildUnet(torch.nn.Module):
         return x
 
 class BuildResUnet(torch.nn.Module):
-    def __init__(self, in_channels, classes, reverse_skip_concat=False):
+    """
+    BuildResUnet is a class that implements a Residual U-Net model architecture.
+    It consists of an encoder and a decoder, with skip connections between corresponding encoder and decoder layers.
+    The final output is obtained by passing the input through a series of convolutional and transpose convolutional layers.
+
+    Args:
+        in_channels (int): Number of input channels.
+        classes (int): Number of output classes.
+        reverse_skip_concat (bool, optional): Whether to reverse the order of skip connection concatenation. Defaults to False.
+        k_size (int, optional): Kernel size for convolutional layers. Defaults to 3.
+        s (int, optional): Stride for convolutional layers. Defaults to 2.
+        pad (int, optional): Padding for convolutional layers. Defaults to 1.
+        b (bool, optional): Whether to include bias in convolutional layers. Defaults to False.
+    """
+
+    def __init__(self, in_channels, classes, reverse_skip_concat=False, k_size=3, s=2, pad=0, b=True):
         super(BuildResUnet, self).__init__()
         self.reverse_skip_concat = reverse_skip_concat
+        k_size = self.k_size
+        s = self.s
+        pad = self.pad
+        b = self.b
 
         self.layers_channels = [in_channels, 64, 128, 256, 512, 1024]
-        self.input_layer = self.ResidualBlock(self.layers_channels[0], self.layers_channels[1], input=True)
-        self.encoder_layers = torch.nn.ModuleList([ResidualBlock(c_in, c_out) 
+        self.input_layer = ResidualBlock(self.layers_channels[0], self.layers_channels[1], input=True, 
+                                              kernel_size=k_size, stride=s, padding=pad, bias=b)
+        self.encoder_layers = torch.nn.ModuleList([ResidualBlock(c_in, c_out, kernel_size=k_size, stride=s, padding=pad, bias=b) 
                                                    for c_in, c_out in zip(self.layers_channels[1:-1], self.layers_channels[2:])])
         self.up_transpose_2x2 = torch.nn.ModuleList([torch.nn.ConvTranspose2d(c_in, c_out, kernel_size=2, stride=2) 
                                                      for c_in, c_out in zip(self.layers_channels[::-1][:-2], self.layers_channels[::-1][1:-1])])
-        self.decoder_layers = torch.nn.ModuleList([ResidualBlock(c_in, c_out) 
+        self.decoder_layers = torch.nn.ModuleList([ResidualBlock(c_in, c_out, kernel_size=k_size, stride=s, padding=pad, bias=b) 
                                                    for c_in, c_out in zip(self.layers_channels[::-1][:-2], self.layers_channels[::-1][1:-1])])
         self.final_conv = torch.nn.Conv2d(self.layers_channels[1], classes, kernel_size=1)
 
     def forward(self, x):
+        """
+        Forward pass of the BuildResUnet model.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor.
+        """
         encoder_outputs = []
         x = self.input_layer(x)
         encoder_outputs.append(x)
@@ -202,7 +254,5 @@ class BuildResUnet(torch.nn.Module):
         
         return x
 
-class SwinTransformerBlock(torch.nn.Module):
-    
 
-   
+    
