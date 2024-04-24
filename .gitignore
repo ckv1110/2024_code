@@ -32,3 +32,4 @@ example_img/T19_feature_set/T19_centroids.csv
 contouring.py
 model_architectures/Unet_default.onnx
 model_architectures/ResUnet.onnx
+2024_training_images
