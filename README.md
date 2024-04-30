@@ -6,13 +6,13 @@
 - Stain Normatlizaiton + Deconvolution + Nuclei feature extractor based on [HistomicsTK](https://digitalslidearchive.github.io/HistomicsTK/index.html)
 - Code snippet to visualize models and check them, saved as .onnx files
 ### What works:
-- Base U-Net + ResU-Net model fully working
+- Base U-Net + ResU-Net + ResNet50,101,152 encoder U-Net models fully working
 - StarDist whole WSI nuclei segmentation + Stain normalization + nuclei feature extraction (60 features in total) pipeline is working
 - 60 features can be extracted from each nuclei along with their X- and Y-centroid coordinates under the {preifix}_feature.csv file
     - Currently working with smaller cases, but larger cases increases processing time seemingly exponentially (__to investigate__)
 ### Currently working on:
 - Building more models into __model_utils.py__ from scratch => Gives more granular control over what to tune 
-    - Build ~~ResU-Net~~ and various ResNet (18, 34, 50, 101) encoder U-Net's
+    - ~~Build ResU-Net and various ResNet (18, 34, 50, 101) encoder U-Net's~~
     - Build fusion blocks for multi-task learning (example from https://doi.org/10.1016/j.media.2022.102481)
     ![https://doi.org/10.1016/j.media.2022.102481](https://ars.els-cdn.com/content/image/1-s2.0-S1361841522001281-gr1_lrg.jpg)
         - This will allow me to use the H&E and nuclei images to train 2 models simultaneously to predict TMEs and marker heatmaps whilst having the 2 models share information. Thus, theoretically resulting in a more robust model. 
