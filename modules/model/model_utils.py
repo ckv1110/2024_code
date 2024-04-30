@@ -392,7 +392,7 @@ class BuildResNetEncoderUnet(torch.nn.Module):
             self.layers_channels = [3, 64, 64, 128, 256, 512]
         elif resnet_type == 'resnet34':
             self.resnet_encoder = resnet.resnet34(weights=weights)
-            self.depth = 5
+            self.depth = 6
             self.layers_channels = [3, 64, 64, 128, 256, 512]
         elif resnet_type == 'resnet50':
             self.resnet_encoder = resnet.resnet50(weights=weights)
