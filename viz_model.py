@@ -2,10 +2,11 @@ import torchviz
 import torch
 from modules.model import BuildResidualUnet, BuildUnet, BuildResNetEncoderUnet
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-resnet = 'resnet34'
+resnet = 'resnet152'
 model = BuildResNetEncoderUnet(in_channels=3, classes=10, resnet_type=resnet, weights=None, k_size=3, pad=1, b=True, reverse_skip_concat=False, residual_decoder=False).to(device)
 # model = BuildResidualUnet(in_channels=3, classes=3, model_depth=5, input_layer_channels=64, k_size=3, st=2, pad=1, b=True, reverse_skip_concat=False).to(device)
 # model = BuildUnet(in_channels=3, classes=3, model_depth=6, input_layer_channels=64, k_size=3, st=2, pad=1, b=True, reverse_skip_concat=False).to(device)

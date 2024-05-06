@@ -34,3 +34,5 @@ model_architectures/Unet_default.onnx
 model_architectures/ResUnet.onnx
 2024_training_images
 model_architectures
+MRI
+monai.py
