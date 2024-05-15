@@ -10,6 +10,8 @@ import pandas as pd
 from stardist.models import StarDist2D
 from csbdeep.utils import normalize
 import gc
+import os
+from skimage.color import rgb2hed, hed2rgb, separate_stains, combine_stains
 
 def load_image(image_path, as_tf=True):
     """
@@ -83,7 +85,22 @@ def get_deconvolved_stains(im_input, stain_colour_map):
 
     return im_nuclei_stain, im_ecm_stain
 
-def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, verbose=False):
+def deconvolve_scikit(im_input, stain_colour_map):
+    # im_hed = rgb2hed(im_input)
+    W = np.array([stain_colour_map['hematoxylin'],
+                  stain_colour_map['eosin'],
+                  stain_colour_map['null']])
+
+    im_hed = separate_stains(im_input, W)
+    null = np.zeros_like(im_hed[:, :, 0])
+    print('Performing color deconvolution...')
+    im_h = hed2rgb(np.stack((im_hed[:, :, 0], null, null), axis=-1))
+    im_e = hed2rgb(np.stack((null, im_hed[:, :, 1], null), axis=-1))
+    im_d = hed2rgb(np.stack((null, null, im_hed[:, :, 2]), axis=-1))
+    print('Completed color deconvolution.')
+    return im_h, im_e, im_d
+
+def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, verbose=False, features=None):
     """
     Extracts features from nuclei stain image and nuclei segmentation mask and saves them as .csv files.
 
@@ -95,7 +112,7 @@ def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, verbose=False):
         verbose (bool, optional): If True, prints the number of nuclei detected. Defaults to False.
 
     Returns:
-        None -> Saves the extracted features as a .csv file.
+        The extracted features as a pandas DataFrame.
     """
 
     # Get nuclei count
@@ -104,26 +121,38 @@ def get_nuclei_features(nuclei_stain_im, nuclei_seg_mask, verbose=False):
         print(f'Number of nuclei detected: {len(nuclei_count)}')
     
     # Compute nuclei features
-    print('Computing features...')
-    fsd_f = htk.features.compute_fsd_features(nuclei_seg_mask)
-    grad_f = htk.features.compute_gradient_features(nuclei_seg_mask, nuclei_stain_im)
-    morph_f = htk.features.compute_morphometry_features(nuclei_seg_mask)
-    hara_f = htk.features.compute_haralick_features(nuclei_seg_mask, nuclei_stain_im)
+    if features == 'all':
+        print('Computing all features...')
+        fsd_f = htk.features.compute_fsd_features(nuclei_seg_mask)
+        grad_f = htk.features.compute_gradient_features(nuclei_seg_mask, nuclei_stain_im)
+        morph_f = htk.features.compute_morphometry_features(nuclei_seg_mask)
+        hara_f = htk.features.compute_haralick_features(nuclei_seg_mask, nuclei_stain_im)
+        # Concatenate the dataframes
+        print('Completed computing features')
+        features = pd.concat([hara_f, fsd_f, grad_f, morph_f], axis=1)
+        # os.makedirs(save_path, exist_ok=True)
+        # features.insert(0, 'Nuclei_ID', range(1, 1 + len(features)))
+        # features.to_csv(f"{save_path}/{file_name}-features.csv", index=False)
+        return features
+    elif features == 'fsd':
+        print('Computing Fourier shape descriptors...')
+        fsd_f = htk.features.compute_fsd_features(nuclei_seg_mask)
+        return fsd_f
+    elif features == 'grad':
+        print('Computing gradient features...')
+        grad_f = htk.features.compute_gradient_features(nuclei_seg_mask, nuclei_stain_im)
+        return grad_f
+    elif features == 'morph':
+        print('Computing morphometry features...')
+        morph_f = htk.features.compute_morphometry_features(nuclei_seg_mask)
+        return morph_f
+    elif features == 'hara':
+        print('Computing Haralick features...')
+        hara_f = htk.features.compute_haralick_features(nuclei_seg_mask, nuclei_stain_im)
+        return hara_f
 
-    # fsd_f.to_csv(save_path + file_name + "-fourier_shape_descriptors.csv")
-    # grad_f.to_csv(save_path + file_name + "-gradient.csv")
-    # morph_f.to_csv(save_path + file_name + "-morphometry.csv")
-    # hara_f.to_csv(save_path + file_name + "-haralick.csv")
-
-    # Concatenate the dataframes
-    print('Completed computing features')
-    features = pd.concat([hara_f, fsd_f, grad_f, morph_f], axis=1)
-    # os.makedirs(save_path, exist_ok=True)
-    # features.insert(0, 'Nuclei_ID', range(1, 1 + len(features)))
-    # features.to_csv(f"{save_path}/{file_name}-features.csv", index=False)
-    return features
-
-def segment_nuclei(model_type, im_array, 
+def segment_nuclei(NAME,
+                   model_type, im_array, 
                    axes='YXC', 
                    block_size=2000, min_overlap=300, context=300, 
                    prob_thresh=0.5, nms_thresh=0.8):
@@ -154,5 +183,6 @@ def segment_nuclei(model_type, im_array,
         )
     del _
     gc.collect()
-    tiff.imwrite('./example_img/T19_StarDist2D_prediction.tif', labels.astype('uint16'))
+    os.makedirs(f'./{NAME}/processed/', exist_ok=True)
+    tiff.imwrite(f'./{NAME}/processed/{NAME}_StarDist2D_prediction.tif', labels.astype('uint16'))
     return labels

@@ -15,11 +15,12 @@
     - ~~Build ResU-Net and various ResNet (18, 34, 50, 101) encoder U-Net's~~
     - Build fusion blocks for multi-task learning (example from https://doi.org/10.1016/j.media.2022.102481)
     ![https://doi.org/10.1016/j.media.2022.102481](https://ars.els-cdn.com/content/image/1-s2.0-S1361841522001281-gr1_lrg.jpg)
-        - This will allow me to use the H&E and nuclei images to train 2 models simultaneously to predict TMEs and marker heatmaps whilst having the 2 models share information. Thus, theoretically resulting in a more robust model. 
-    - Implement [FOVeation](https://github.com/lxasqjc/Foveation-Segmentation) module into the model  
-    - Build training script using [Pytorch Lightning](https://lightning.ai/pytorch-lightning)
+        - This will allow me to use the H&E images to train 2 models simultaneously to predict TMEs and marker heatmaps whilst having the 2 models share information. Thus, theoretically resulting in a more robust model.
+        - Consider splitting H&E into hematoxylin (nuclei) and eosin (ecm) channels to 2 models that are linked via fusion blocks, could lead to quadruple fusion-blocked models => may be too complex
+    - ~~Implement [FOVeation](https://github.com/lxasqjc/Foveation-Segmentation) module into the model~~ Uneccesary with the implementation of fusion blocks  
+    - Build training script using [Pytorch Lightning](https://lightning.ai/pytorch-lightning) - I will be adapting the older training script to the newer protocol
 - ~~Implement nuclei centroid for the __feature_extractor.py__ utility file~~ **COMPLETED**
-    - Create contours around tumour segmentation mask and ray cast nuclei centroid coordinates to spatially map them
+    - ~~Create contours around tumour segmentation mask and ray cast nuclei centroid coordinates to spatially map them~~
 - Convert IHC stains into heatmaps for training + automate script
 - Test out [Stain2Stain](https://github.com/pegahs1993/Stain-to-Stain-Translation) GAN stain normalization method (_Low Prio_ - normalization quality is already satisfactory apart from some minor nitpicks)
 ### What is required to run these codes (All tested on Windows 11 machine):
